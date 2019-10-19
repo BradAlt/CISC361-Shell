@@ -49,7 +49,7 @@ int sh( int argc, char **argv, char **envp )
   char **args = calloc(MAXARGS, sizeof(char*));
   int uid, i, status, argsct, go = 1;
   struct passwd *password_entry;
-  char *homedir;
+  char *homedir, *curdir, *lastdir;
   struct pathelement *pathlist, *ogpath;
 
   uid = getuid();
@@ -64,7 +64,7 @@ int sh( int argc, char **argv, char **envp )
   
   owd = calloc(strlen(pwd) + 1, sizeof(char));
   memcpy(owd, pwd, strlen(pwd));
-  prompt[0] = ' '; prompt[1] = '\0';
+  prompt[0] = '\0';
 
   /* Put PATH into a linked list */
   pathlist = get_path();
@@ -77,7 +77,7 @@ int sh( int argc, char **argv, char **envp )
 
   while ( go ) {
     ptr = getcwd(NULL, 0); 
-    printf("\n<%s> ", ptr); //Print prompt
+    printf("\n%s <%s> ", prompt, ptr); //Print prompt
     free(ptr);
 
     strcpy(buffer,"");
@@ -96,6 +96,7 @@ int sh( int argc, char **argv, char **envp )
       }
     }
 
+    printf("    ");
 
     /* get command line and process */
     /* check for each built in command and implement */
@@ -130,15 +131,15 @@ int sh( int argc, char **argv, char **envp )
     }
      //------------------------ CD ----------------------------
     else if(strcmp(userInput[0], "cd")==0){
+      lastdir = curdir;
+      curdir = getcwd(NULL,0);
+
       if(strcmp(userInput[1], "")==0){
-        printf("\nGo to home directory! PLACEHOLDER");
-        chdir("/usa/brada/");
+        chdir(homedir);
       }
       else if(userInput[1][0]=='-'){
         printf("Go to previous directory\n");
-      }
-      else if(userInput[1][0]=='*'){
-        chdir("~");
+        chdir(lastdir);
       }
       else{
         ptr = getcwd(NULL, 0);
@@ -146,12 +147,10 @@ int sh( int argc, char **argv, char **envp )
         strcpy(newDir, ptr);
         strcat(newDir, "/"); 
         strcat(newDir, userInput[1]);
-        strcat(newDir, "/");
+        strcat(newDir, "/"); // go to cwd/input/
         printf("Go to <%s>", newDir);
         chdir(newDir);
-
       }
-      
     }
      //------------------------ PWD ----------------------------
     else if(strcmp(userInput[0], "pwd")==0){
@@ -161,28 +160,40 @@ int sh( int argc, char **argv, char **envp )
     }
      //------------------------ LIST ----------------------------
     else if(strcmp(userInput[0], "list")==0){
-      printf("Placeholder for %s", userInput[0]);
+      printf("Lets go");
     }
      //------------------------ PID ----------------------------
     else if(strcmp(userInput[0], "pid")==0){
-      printf("Placeholder for %s", userInput[0]);
+      int p_id = getpid();
+      printf("Current PID: %i", p_id);
     }
      //------------------------ KILL ----------------------------
     else if(strcmp(userInput[0], "kill")==0){
-      printf("Placeholder for %s", userInput[0]);
+      
+      if(userInput[1][0] == '-'){
+        char* tmp = malloc(69*sizeof(char));
+        for(int i = 1; i < strlen(userInput[1]); i++){ //Kinda gross
+          tmp[i-1] = userInput[1][i]; //Adds everything from the user input, except the '-'
+        }
+        kill(atoi(userInput[2]),atoi(tmp));
+        free(tmp);
+      }
+      else{
+        kill(atoi(userInput[1]), 9); //I mean, I guess 9 is the go-to kill thing right?
+      }
     }
      //------------------------ PROMPT ----------------------------
     else if(strcmp(userInput[0], "prompt")==0){
-      printf("Placeholder for %s", userInput[0]);
+      strcpy(prompt,userInput[1]);
     }
     //------------------------ EXIT-----------------------
     else if(strcmp(userInput[0], "exit") == 0){
       go = 0;
     }
+     //------------------------- ELSE ------------------------
     else
     {
-      //printf("%s: Command not found, interpreting as file:", userInput[0]);
-      //------------------------- ELSE ------------------------
+      //------------------ Execute program --------------
       pid_t pid;
 
       if ((pid = fork()) < 0) {
@@ -199,7 +210,6 @@ int sh( int argc, char **argv, char **envp )
         waitpid(pid, NULL, 0);
       }
     }
-
 
 
 
