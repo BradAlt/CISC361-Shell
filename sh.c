@@ -11,34 +11,7 @@
 #include <signal.h>
 #include "sh.h"
 
-char** stringToArray(char* input, int* myArgsCount){
-    char buf[69];
-    strcpy(buf, input);
-    char* t = strtok(buf," ");
-    int cur = 1;
-    while(strtok(NULL," ")){
-        cur++;
-    }
-    char** myArgs = malloc((cur+1) * sizeof(char*)); //Need space for however big each strtok chunk is (and each is a char array) plus the terminating char
-    //We might as well fill in that \0 now
-    myArgs[cur] = malloc(2*sizeof(char));
-    strcpy(buf, input);
-    strcpy(myArgs[cur], "\0");
-    //Not actually have to fill in each piece of args
-    cur = 0;
-    t = strtok(buf," ");
-    while(t){
-        int len = strlen(t);
-        myArgs[cur] = malloc((len+1)*sizeof(char));
-        strcpy(myArgs[cur],t);
-        //printf("Filled position %i with %s\n", cur, t);
-        cur++;
-        *myArgsCount = cur;
-        t = strtok(NULL," ");
-        //printf("New: %s\n", t);
-    }
-    return myArgs;
-}
+
 
 int sh( int argc, char **argv, char **envp )
 {
@@ -70,7 +43,7 @@ int sh( int argc, char **argv, char **envp )
   pathlist = get_path();
   ogpath = pathlist;
 
-  char buffer[69];
+  char buffer[420];
   char* ptr, input, curArg;
   char** userInput;
   char** myArr;
@@ -82,7 +55,7 @@ int sh( int argc, char **argv, char **envp )
 
     strcpy(buffer,"");
     while(strlen(buffer)==0 || buffer[0] == ' '){
-      fgets(buffer, 69, stdin); // Get user input
+      fgets(buffer, 420, stdin); // Get user input
       buffer[strlen(buffer) - 1] = '\0';
 
       if(strlen(buffer)==0){
@@ -160,7 +133,14 @@ int sh( int argc, char **argv, char **envp )
     }
      //------------------------ LIST ----------------------------
     else if(strcmp(userInput[0], "list")==0){
-      printf("Lets go");
+      if(strcmp(userInput[1],"")==0){
+        list(getcwd(NULL, 0));
+      }
+      else{
+        for(int i = 1; i < argsct; i++){
+          list(userInput[i]);
+        }
+      }
     }
      //------------------------ PID ----------------------------
     else if(strcmp(userInput[0], "pid")==0){
@@ -242,6 +222,36 @@ int sh( int argc, char **argv, char **envp )
 } /* sh() */
 
 
+char** stringToArray(char* input, int* myArgsCount){
+    char buf[69];
+    strcpy(buf, input);
+    char* t = strtok(buf," ");
+    int cur = 1;
+    while(strtok(NULL," ")){
+        cur++;
+    }
+    char** myArgs = malloc((cur+1) * sizeof(char*)); //Need space for however big each strtok chunk is (and each is a char array) plus the terminating char
+    //We might as well fill in that \0 now
+    myArgs[cur] = malloc(2*sizeof(char));
+    strcpy(buf, input);
+    strcpy(myArgs[cur], "\0");
+    //Not actually have to fill in each piece of args
+    cur = 0;
+    t = strtok(buf," ");
+    while(t){
+        int len = strlen(t);
+        myArgs[cur] = malloc((len+1)*sizeof(char));
+        strcpy(myArgs[cur],t);
+        //printf("Filled position %i with %s\n", cur, t);
+        cur++;
+        *myArgsCount = cur;
+        t = strtok(NULL," ");
+        //printf("New: %s\n", t);
+    }
+    return myArgs;
+}
+
+
 char *which(char *command, struct pathelement *pathlist )
 {
    /* loop through pathlist until finding command and return it.  Return
@@ -269,8 +279,20 @@ char *where(char *command, struct pathelement *pathlist )
   return NULL;
 } /* where() */
 
-void list ( char *dir )
+void list(char *dir)
 {
+  printf("Listing contents of: %s", dir);
+  DIR *myDir = opendir(dir);
+  if (myDir) { //If successfully opened
+    struct dirent *curEntry;
+    while (curEntry = readdir(myDir))
+    {
+      printf("\n  ~ %s",curEntry->d_name);
+    }
+    printf("\n");
+    closedir(myDir);
+  }
+
   /* see man page for opendir() and readdir() and print out filenames for
   the directory passed */
 } /* list() */
