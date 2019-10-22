@@ -179,15 +179,37 @@ int sh( int argc, char **argv, char **envp )
     else if(strcmp(userInput[0], "exit") == 0){
       go = 0;
     }
-    else{
-      printf("%s: Command not found", userInput[0]);
+    else
+    {
+      //printf("%s: Command not found, interpreting as file:", userInput[0]);
+      //------------------------- ELSE ------------------------
+      pid_t pid;
+
+      if ((pid = fork()) < 0) {
+        puts("ERROR");
+      }
+      else if (pid == 0) {
+        char* myProgram = getcwd(NULL, 0); 
+        strcat(myProgram,"/");
+        strcat(myProgram,userInput[0]);
+        execve(myProgram, argv, envp);
+        free(myProgram);
+      }
+      else {
+        waitpid(pid, NULL, 0);
+      }
     }
-  
+
+
+
+
+
+
+
     for(int i = 0; i < argsct+1; i++){
       free(userInput[i]);
     }
     free(userInput);
-    printf("\n");
   }
 
   // Seemingly doesnt actually fix any leaks
