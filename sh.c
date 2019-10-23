@@ -47,12 +47,11 @@ int sh( int argc, char **argv, char **envp )
   char* ptr, input, curArg;
   char** userInput;
   char** myArr;
-
+  
   while ( go ) {
     ptr = getcwd(NULL, 0); 
     printf("\n%s <%s> ", prompt, ptr); //Print prompt
     free(ptr);
-
     strcpy(buffer,"");
     while(strlen(buffer)==0 || buffer[0] == ' '){
       fgets(buffer, 420, stdin); // Get user input
@@ -66,6 +65,9 @@ int sh( int argc, char **argv, char **envp )
       }
       else{
         userInput = stringToArray(buffer, &argsct);
+        for(int i = 0; i < argsct; i++){
+          //printf("(%i,%s)", i, userInput[i]);
+        }
       }
     }
 
@@ -185,28 +187,32 @@ int sh( int argc, char **argv, char **envp )
         strcat(myProgram,userInput[0]);
         execve(myProgram, argv, envp);
         free(myProgram);
+        return 0;
+        
       }
       else {
         waitpid(pid, NULL, 0);
       }
+
     }
 
 
 
 
 
-
-    for(int i = 0; i < argsct+1; i++){
+    //printf("\nFreeing: ");
+    for(int i = 0; i < argsct; i++){
+      //printf("(%i,%s)",i ,userInput[i]);
       free(userInput[i]);
     }
     free(userInput);
   }
-
+  //printf("\nOUT OF WHILE GO LOOP");
   // Seemingly doesnt actually fix any leaks
   // pathlist = get_path();
 
   free(pathlist->element);
-  do {  
+  do {
     struct pathelement *tmp = pathlist;
     pathlist = pathlist->next;
     free(tmp);
