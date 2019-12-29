@@ -83,14 +83,16 @@ int sh( int argc, char **argv, char **envp )
         /* fprintf(stderr, "%s: Command not found.\n", args[0]); */
     //----------------------- PATH -----------------------------
     if(strcmp(userInput[0], "path")==0){
-      while(pathlist->next){
-        pathlist = pathlist->next;
-        printf("%s\n", pathlist->element); //Invalid read of size 1
+      	struct pathelement *tmp = pathlist;
+	while(pathlist){
+        printf("\n%s", pathlist->element); //Invalid read of size 1
+	pathlist = pathlist->next;
       }
+	pathlist = tmp;
     }
     //------------------------ WHERE ----------------------------
     else if(strcmp(userInput[0], "where")==0){
-      if(userInput[1]){
+      if(strcmp(userInput[1],"")==0){
         printf("\nWhat to look for: ");
         fgets(buffer, 69, stdin); // Get user input
         buffer[strlen(buffer) - 1] = '\0';
@@ -102,11 +104,21 @@ int sh( int argc, char **argv, char **envp )
     }
      //------------------------ WHICH --------------------------
     else if(strcmp(userInput[0], "which")==0){
-      printf("Placeholder for %s", userInput[0]);
+            if(strcmp(userInput[1],"")==0){
+        printf("\nWhat to look for: ");
+        fgets(buffer, 69, stdin); // Get user input
+        buffer[strlen(buffer) - 1] = '\0';
+        where(buffer, pathlist);
+      }
+      else{
+        where(userInput[1], pathlist);
+      }
+
     }
      //------------------------ CD ----------------------------
     else if(strcmp(userInput[0], "cd")==0){
-      lastdir = curdir;
+      	free(lastdir);
+	lastdir = curdir;
       curdir = getcwd(NULL,0);
 
       if(strcmp(userInput[1], "")==0){
@@ -118,14 +130,18 @@ int sh( int argc, char **argv, char **envp )
       }
       else{
         ptr = getcwd(NULL, 0);
-        char* newDir = malloc(69*sizeof(char));
+        char* newDir = malloc(420*sizeof(char));
         strcpy(newDir, ptr);
         strcat(newDir, "/"); 
         strcat(newDir, userInput[1]);
         strcat(newDir, "/"); // go to cwd/input/
         printf("Go to <%s>", newDir);
         chdir(newDir);
+	free(ptr);
+	free(newDir);
       }
+	
+      free(curdir);
     }
      //------------------------ PWD ----------------------------
     else if(strcmp(userInput[0], "pwd")==0){
@@ -133,10 +149,77 @@ int sh( int argc, char **argv, char **envp )
       printf("Current working directory: <%s> ", ptr); //Print prompt
       free(ptr);
     }
+    //------------------------ PRINTENV ------------------------
+    //
+    else if(strcmp(userInput[0], "printenv")==0){
+	if(strcmp(userInput[1], "")==0){
+		int cur = 0;
+		char* tmp = "true";
+		printf("\nEnvironment: ");
+		while(tmp){
+			tmp = envp[cur];
+			printf("\n   %s",tmp);
+			cur++;
+		}
+	}
+	else{
+		printf("Environment: %s = %s", userInput[1], getenv(userInput[1]));
+	}
+    }
+    //------------------------ SETENV ---------------------------
+
+    else if(strcmp(userInput[0], "setenv")==0){
+	if(strcmp(userInput[1],"")==0){
+		int cur = 0;
+		char* tmp = "true";
+		printf("\nEnvironment: ");
+		while(tmp){
+			tmp = envp[cur];
+			printf("\n   %s",tmp);
+			cur++;
+		}
+	}
+	else if(strcmp(userInput[1],"PATH")==0){
+		free(pathlist->element);
+		do {
+    			struct pathelement *tmp = pathlist;
+    			pathlist = pathlist->next;
+    			free(tmp);
+  		} while (pathlist);
+
+		
+	//Need to convert the remainder of userInput into : delimited string
+		char* newPath = malloc(420*sizeof(char));
+		strcpy(newPath,"");
+		int cur = 2;
+		while(strcmp(userInput[cur],"")!=0){
+			//printf("Cur newPath: %s", newPath);
+			strcat(newPath,"/");
+			strcat(newPath, userInput[cur]);
+			strcat(newPath,":");
+			cur++;
+		}
+		setenv("PATH", newPath,1);
+		free(pathlist);
+		pathlist = get_path();
+		free(newPath);
+	}
+	else if(strcmp(userInput[1],"")!=0 && strcmp(userInput[2],"")==0){
+		setenv(userInput[1], "", 0);
+	}
+	else if(strcmp(userInput[1],"")!=0 && strcmp(userInput[2],"")!=0){
+		setenv(userInput[1], userInput[2], 1);
+	}
+	else{
+		printf("\nERROR");
+	}
+    }
      //------------------------ LIST ----------------------------
     else if(strcmp(userInput[0], "list")==0){
       if(strcmp(userInput[1],"")==0){
-        list(getcwd(NULL, 0));
+	char* curThing = getcwd(NULL, 0);
+        list(curThing);
+	free(curThing);
       }
       else{
         for(int i = 1; i < argsct; i++){
@@ -201,7 +284,7 @@ int sh( int argc, char **argv, char **envp )
 
 
     //printf("\nFreeing: ");
-    for(int i = 0; i < argsct; i++){
+    for(int i = 0; i < argsct+1; i++){
       //printf("(%i,%s)",i ,userInput[i]);
       free(userInput[i]);
     }
